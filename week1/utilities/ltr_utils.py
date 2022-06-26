@@ -11,6 +11,9 @@ def create_rescore_ltr_query(user_query: str, query_obj, click_prior_query: str,
     #add on the rescore
     ##### Step 4.e:
     print("IMPLEMENT ME: create_rescore_ltr_query")
+
+    
+
     if active_features is not None and len(active_features) > 0:
         query_obj["rescore"]["query"]["rescore_query"]["sltr"]["active_features"] =  active_features
 
@@ -57,8 +60,39 @@ def create_sltr_hand_tuned_query(user_query, query_obj, click_prior_query, ltr_m
 
 def create_feature_log_query(query, doc_ids, click_prior_query, featureset_name, ltr_store_name, size=200, terms_field="_id"):
     ##### Step 3.b:
-    print("IMPLEMENT ME: create_feature_log_query")
-    return None
+    feature_log_query = {
+        'query': {
+            'bool': {
+                "filter": [ 
+                    {
+                        "terms": {
+                            "_id": doc_ids
+                        }
+                    },
+                    {
+                        "sltr": {
+                            "_name": "logged_featureset",
+                            "featureset": featureset_name,
+                            "store": ltr_store_name,
+                            "params": {
+                                "keywords": query
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "ext": {
+            "ltr_log": {
+                "log_specs": {
+                    "name": "log_entry",
+                    "named_query": "logged_featureset"
+                }
+            }
+        }
+    }
+
+    return feature_log_query
 
 
 # Item is a Pandas namedtuple
