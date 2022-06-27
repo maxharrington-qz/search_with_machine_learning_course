@@ -243,9 +243,10 @@ class DataPrepper:
         feature_results["sku"] = []
         feature_results["name_match"] = []
         for hit in response["hits"]["hits"]:
-            feature_results["doc_id"].append(hit["_id"])  # capture the doc id so we can join later
+            doc_id = hit["_id"]
+            feature_results["doc_id"].append(doc_id)  # capture the doc id so we can join later
             feature_results["query_id"].append(query_id)
-            feature_results["sku"].append(hit["_source"]["sku"][0]) 
+            feature_results["sku"].append(doc_id) 
             feature_results["name_match"].append(hit['fields']['_ltrlog'][0]['log_entry'][0].get('value'))
                 
         frame = pd.DataFrame(feature_results)
