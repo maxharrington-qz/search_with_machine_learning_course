@@ -207,8 +207,9 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
     threshold = 0.5
     for i in range(69):
         if sum(probs[0:i])> threshold:
-            categories = categories[0:i]
+            categories = list(categories[0:i])
             break
+    
     filters = [{
                 "terms": {
                     "categoryPathIds": categories
@@ -224,7 +225,9 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
     # Note: you may also want to modify the `create_query` method above
     query_obj = create_query(user_query, click_prior_query=None, filters=filters, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
+    print(query_obj)
     response = client.search(query_obj, index=index)
+    print(response)
     if response and response['hits']['hits'] and len(response['hits']['hits']) > 0:
         hits = response['hits']['hits']
         print(json.dumps(response, indent=2))
