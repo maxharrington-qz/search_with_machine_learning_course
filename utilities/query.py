@@ -26,6 +26,13 @@ regexes = [(r"[\+]", " plus"),
             (r"\s*[\./_-]\s*", " "),
             (r"[^\w\s]", "")]
 
+model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
+stemmer = nltk.stem.snowball.SnowballStemmer("english")
+regexes = [(r"[\+]", " plus"),
+            (r"\$(\d+)", r"\1 dollars"),
+            (r"\&", " and "),
+            (r"\s*[\./_-]\s*", " "),
+            (r"[^\w\s]", "")]
 # expects clicks and impressions to be in the row
 def create_prior_queries_from_group(
         click_group):  # total impressions isn't currently used, but it mayb worthwhile at some point
@@ -120,6 +127,7 @@ def create_query(user_query, click_prior_query, filters = [], boosts = [], sort=
                                 }
                             }
                         ]+boosts,
+
                         "minimum_should_match": 1,
                         "filter": filters  #
                     }
@@ -223,7 +231,9 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
     # Note: you may also want to modify the `create_query` method above
     query_obj = create_query(user_query, click_prior_query=None, filters=filters, boosts= boosts, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
+    print(query_obj)
     response = client.search(query_obj, index=index)
+    print(response)
     if response and response['hits']['hits'] and len(response['hits']['hits']) > 0:
         hits = response['hits']['hits']
         print(json.dumps(response, indent=2))
