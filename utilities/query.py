@@ -15,10 +15,16 @@ import fasttext
 import re
 import nltk     
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
+model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
+stemmer = nltk.stem.snowball.SnowballStemmer("english")
+regexes = [(r"[\+]", " plus"),
+            (r"\$(\d+)", r"\1 dollars"),
+            (r"\&", " and "),
+            (r"\s*[\./_-]\s*", " "),
+            (r"[^\w\s]", "")]
 
 model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
 stemmer = nltk.stem.snowball.SnowballStemmer("english")
@@ -120,7 +126,8 @@ def create_query(user_query, click_prior_query, filters = [], boosts = [], sort=
                                     }
                                 }
                             }
-                        ] + boosts,
+                        ]+boosts,
+
                         "minimum_should_match": 1,
                         "filter": filters  #
                     }
@@ -209,21 +216,20 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
         if sum(probs[0:i])> threshold:
             categories = list(categories[0:i])
             break
-    
+    categories = [i[9:] for i in categories]
     filters = [{
                 "terms": {
                     "categoryPathIds": categories
                 }
             }]
-    # boosts = [{
-    #             "terms": {
-    #                 "categoryPathIds": filter_labels
-    #             }
-    #         }]
-
-
+    boosts = [{
+                "terms": {
+                    "categoryPathIds": categories,
+                    "boost":10
+                }
+            }]
     # Note: you may also want to modify the `create_query` method above
-    query_obj = create_query(user_query, click_prior_query=None, filters=filters, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    query_obj = create_query(user_query, click_prior_query=None, filters=filters, boosts= boosts, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
     print(query_obj)
     response = client.search(query_obj, index=index)
