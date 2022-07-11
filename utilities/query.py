@@ -11,12 +11,22 @@ from urllib.parse import urljoin
 import pandas as pd
 import fileinput
 import logging
+import fasttext
+import re
+import nltk     
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
 
+model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
+stemmer = nltk.stem.snowball.SnowballStemmer("english")
+regexes = [(r"[\+]", " plus"),
+            (r"\$(\d+)", r"\1 dollars"),
+            (r"\&", " and "),
+            (r"\s*[\./_-]\s*", " "),
+            (r"[^\w\s]", "")]
 # expects clicks and impressions to be in the row
 def create_prior_queries_from_group(
         click_group):  # total impressions isn't currently used, but it mayb worthwhile at some point
@@ -49,7 +59,7 @@ def create_prior_queries(doc_ids, doc_id_weights,
 
 
 # Hardcoded query here.  Better to use search templates or other query config.
-def create_query(user_query, click_prior_query, filters, sort="_score", sortDir="desc", size=10, source=None):
+def create_query(user_query, click_prior_query, filters = [], boosts = [], sort="_score", sortDir="desc", size=10, source=None):
     query_obj = {
         'size': size,
         "sort": [
@@ -110,7 +120,7 @@ def create_query(user_query, click_prior_query, filters, sort="_score", sortDir=
                                     }
                                 }
                             }
-                        ],
+                        ] + boosts,
                         "minimum_should_match": 1,
                         "filter": filters  #
                     }
@@ -188,9 +198,31 @@ def create_query(user_query, click_prior_query, filters, sort="_score", sortDir=
 
 def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc"):
     #### W3: classify the query
+    user_query = user_query.lower()
+    for regex, replace in regexes:
+        user_query = re.sub(regex, replace, user_query)
+    user_query = stemmer.stem(user_query)
+    categories, probs = model.predict(user_query, k = 69)
     #### W3: create filters and boosts
+    threshold = 0.5
+    for i in range(69):
+        if sum(probs[0:i])> threshold:
+            categories = categories[0:i]
+            break
+    filters = [{
+                "terms": {
+                    "categoryPathIds": categories
+                }
+            }]
+    # boosts = [{
+    #             "terms": {
+    #                 "categoryPathIds": filter_labels
+    #             }
+    #         }]
+
+
     # Note: you may also want to modify the `create_query` method above
-    query_obj = create_query(user_query, click_prior_query=None, filters=None, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    query_obj = create_query(user_query, click_prior_query=None, filters=filters, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
     response = client.search(query_obj, index=index)
     if response and response['hits']['hits'] and len(response['hits']['hits']) > 0:
