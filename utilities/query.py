@@ -13,12 +13,14 @@ import fileinput
 import logging
 import fasttext
 import re
-import nltk     
+import nltk
+from sentence_transformers import SentenceTransformer
+vector_model = SentenceTransformer('all-MiniLM-L6-v2')     
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
-model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
+model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model3.bin")
 stemmer = nltk.stem.snowball.SnowballStemmer("english")
 regexes = [(r"[\+]", " plus"),
             (r"\$(\d+)", r"\1 dollars"),
@@ -26,14 +28,23 @@ regexes = [(r"[\+]", " plus"),
             (r"\s*[\./_-]\s*", " "),
             (r"[^\w\s]", "")]
 
-model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
-stemmer = nltk.stem.snowball.SnowballStemmer("english")
-regexes = [(r"[\+]", " plus"),
-            (r"\$(\d+)", r"\1 dollars"),
-            (r"\&", " and "),
-            (r"\s*[\./_-]\s*", " "),
-            (r"[^\w\s]", "")]
 # expects clicks and impressions to be in the row
+def create_vector_query(query, num_results = 10):
+    vector = vector_model.encode([query])
+    return {
+            "size": num_results,
+            "query": {
+                "knn": {
+                "my_vector": {
+                    "vector": vector,
+                    "k": num_results
+                }
+                }
+            }
+            }
+
+
+
 def create_prior_queries_from_group(
         click_group):  # total impressions isn't currently used, but it mayb worthwhile at some point
     click_prior_query = ""
@@ -203,7 +214,7 @@ def create_query(user_query, click_prior_query, filters = [], boosts = [], sort=
     return query_obj
 
 
-def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc"):
+def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc", vector = False):
     #### W3: classify the query
     user_query = user_query.lower()
     for regex, replace in regexes:
@@ -229,7 +240,10 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
                 }
             }]
     # Note: you may also want to modify the `create_query` method above
-    query_obj = create_query(user_query, click_prior_query=None, filters=filters, boosts= boosts, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+    if vector:
+        query_obj = create_query(user_query, 10)
+    else:
+        query_obj = create_query(user_query, click_prior_query=None, filters=filters, boosts= boosts, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
     print(query_obj)
     response = client.search(query_obj, index=index)
@@ -253,7 +267,8 @@ if __name__ == "__main__":
                          help='The OpenSearch port')
     general.add_argument('--user',
                          help='The OpenSearch admin.  If this is set, the program will prompt for password too. If not set, use default of admin/admin')
-
+    general.add_argument('--vector',
+                         help='use vector search')
     args = parser.parse_args()
 
     if len(vars(args)) == 0:
@@ -286,7 +301,7 @@ if __name__ == "__main__":
         query = line.rstrip()
         if query == "Exit":
             break
-        search(client=opensearch, user_query=query, index=index_name)
+        search(client=opensearch, user_query=query, index=index_name, vector = args.vector)
 
         print(query_prompt)
 
