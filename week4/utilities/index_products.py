@@ -130,6 +130,7 @@ def index_file(file, index_name, reduced=False):
             key = mappings[idx + 1]
             doc[key] = child.xpath(xpath_expr)
         #print(doc)
+        
         if 'productId' not in doc or len(doc['productId']) == 0:
             continue
         if 'name' not in doc or len(doc['name']) == 0:
@@ -143,7 +144,7 @@ def index_file(file, index_name, reduced=False):
         if docs_indexed % 200 == 0:
             names_embed = model.encode(names)
             for i in range(200):
-                docs[i]["_source"]["name_embed"] = names_embed[i]
+                print(docs[i]["_source"]["name_embed"][""], names_embed[i])
             logger.info("Indexing")
             bulk(client, docs, request_timeout=60)
             logger.info(f'{docs_indexed} documents indexed')

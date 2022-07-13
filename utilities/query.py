@@ -20,7 +20,7 @@ vector_model = SentenceTransformer('all-MiniLM-L6-v2')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:%(message)s')
-model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model3.bin")
+# model = fasttext.load_model("/workspace/search_with_machine_learning_course/week3/model2.bin")
 stemmer = nltk.stem.snowball.SnowballStemmer("english")
 regexes = [(r"[\+]", " plus"),
             (r"\$(\d+)", r"\1 dollars"),
@@ -35,8 +35,8 @@ def create_vector_query(query, num_results = 10):
             "size": num_results,
             "query": {
                 "knn": {
-                "my_vector": {
-                    "vector": vector,
+                "name_embed": {
+                    "vector": list(vector[0]),
                     "k": num_results
                 }
                 }
@@ -215,35 +215,36 @@ def create_query(user_query, click_prior_query, filters = [], boosts = [], sort=
 
 
 def search(client, user_query, index="bbuy_products", sort="_score", sortDir="desc", vector = False):
-    #### W3: classify the query
-    user_query = user_query.lower()
-    for regex, replace in regexes:
-        user_query = re.sub(regex, replace, user_query)
-    user_query = stemmer.stem(user_query)
-    categories, probs = model.predict(user_query, k = 69)
-    #### W3: create filters and boosts
-    threshold = 0.5
-    for i in range(69):
-        if sum(probs[0:i])> threshold:
-            categories = list(categories[0:i])
-            break
-    categories = [i[9:] for i in categories]
-    filters = [{
-                "terms": {
-                    "categoryPathIds": categories
-                }
-            }]
-    boosts = [{
-                "terms": {
-                    "categoryPathIds": categories,
-                    "boost":10
-                }
-            }]
+    # #### W3: classify the query
+    # user_query = user_query.lower()
+    # for regex, replace in regexes:
+    #     user_query = re.sub(regex, replace, user_query)
+    # user_query = stemmer.stem(user_query)
+    # categories, probs = model.predict(user_query, k = 69)
+    # #### W3: create filters and boosts
+    # threshold = 0.5
+    # for i in range(69):
+    #     if sum(probs[0:i])> threshold:
+    #         categories = list(categories[0:i])
+    #         break
+    # categories = [i[9:] for i in categories]
+    # filters = [{
+    #             "terms": {
+    #                 "categoryPathIds": categories
+    #             }
+    #         }]
+    # boosts = [{
+    #             "terms": {
+    #                 "categoryPathIds": categories,
+    #                 "boost":10
+    #             }
+    #         }]
     # Note: you may also want to modify the `create_query` method above
+    print(vector)
     if vector:
-        query_obj = create_query(user_query, 10)
+        query_obj = create_vector_query(user_query, 10)
     else:
-        query_obj = create_query(user_query, click_prior_query=None, filters=filters, boosts= boosts, sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
+        query_obj = create_query(user_query, click_prior_query=None, filters=[], boosts= [], sort=sort, sortDir=sortDir, source=["name", "shortDescription"])
     logging.info(query_obj)
     print(query_obj)
     response = client.search(query_obj, index=index)
@@ -256,6 +257,7 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
 if __name__ == "__main__":
     host = 'localhost'
     port = 9200
+    vector = False
     auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
     parser = argparse.ArgumentParser(description='Build LTR.')
     general = parser.add_argument_group("general")
@@ -267,8 +269,8 @@ if __name__ == "__main__":
                          help='The OpenSearch port')
     general.add_argument('--user',
                          help='The OpenSearch admin.  If this is set, the program will prompt for password too. If not set, use default of admin/admin')
-    general.add_argument('--vector',
-                         help='use vector search')
+    # general.add_argument('--vector', type = bool, default = False,
+    #                      help='use vector search')
     args = parser.parse_args()
 
     if len(vars(args)) == 0:
@@ -277,10 +279,11 @@ if __name__ == "__main__":
 
     host = args.host
     port = args.port
+    # vector = args.vector
     if args.user:
         password = getpass()
         auth = (args.user, password)
-
+    print(1)
     base_url = "https://{}:{}/".format(host, port)
     opensearch = OpenSearch(
         hosts=[{'host': host, 'port': port}],
@@ -295,13 +298,13 @@ if __name__ == "__main__":
 
     )
     index_name = args.index
-    query_prompt = "\nEnter your query (type 'Exit' to exit or hit ctrl-c):"
+    query_prompt = "\nEnterx your query (type 'Exit' to exit or hit ctrl-c):"
     print(query_prompt)
     for line in fileinput.input():
         query = line.rstrip()
         if query == "Exit":
             break
-        search(client=opensearch, user_query=query, index=index_name, vector = args.vector)
+        search(client=opensearch, user_query=query, index=index_name, vector = True)
 
         print(query_prompt)
 
