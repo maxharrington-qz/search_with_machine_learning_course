@@ -249,7 +249,15 @@
           "suggest": {
             "type": "completion"
           }
-
+        }
+      },
+      "name_embed": {
+        "type": "knn_vector",
+        "dimension": 384,
+        "method": {
+            "name": "hnsw",
+            "engine": "nmslib",
+            "space_type": "cosinesimil"
         }
       },
       "onSale": {

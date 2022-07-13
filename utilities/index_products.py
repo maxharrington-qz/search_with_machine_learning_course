@@ -15,11 +15,9 @@ import requests
 import json
 
 ### W4: S1: Import the sentence transformer library.  Note: you may need to pip install it as we've noticed it doesn't always get installed properly despite being in our requirements.txt
-
+from sentence_transformers import SentenceTransformer
 from time import perf_counter
 import concurrent.futures
-
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -110,6 +108,7 @@ def get_opensearch():
 def index_file(file, index_name, reduced=False):
     docs_indexed = 0
     ### W4: S1: Load the model.  # We do this here to avoid threading issues
+    model = SentenceTransformer('all-MiniLM-L6-v2')
     client = get_opensearch()
     logger.info(f'Processing file : {file}')
     tree = etree.parse(file)
@@ -128,6 +127,7 @@ def index_file(file, index_name, reduced=False):
         if reduced and ('categoryPath' not in doc or 'Best Buy' not in doc['categoryPath'] or 'Movies & Music' in doc['categoryPath']):
             continue
         ### W4: S2: Encode the names
+        doc['name_embed'] = model.encode(doc["name"])
         docs.append({'_index': index_name, '_id':doc['sku'][0], '_source' : doc})
         #docs.append({'_index': index_name, '_source': doc})
         docs_indexed += 1
