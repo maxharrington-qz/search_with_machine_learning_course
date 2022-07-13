@@ -29,7 +29,7 @@ mappings =  [
             "productId/text()", "productId",
             "sku/text()", "sku",
             "name/text()", "name",
-            "name_embed/text()", "name_embed",
+            # "name_embed/text()", "name_embed",
             "type/text()", "type",
             "startDate/text()", "startDate",
             "active/text()", "active",
@@ -145,7 +145,7 @@ def index_file(file, index_name, reduced=False):
         if docs_indexed % 200 == 0:
             names_embed = model.encode(names)
             for i in range(200):
-                docs[i]["_source"]["name_embed"]= names_embed[i])
+                docs[i]["_source"]["name_embed"]= names_embed[i]
             logger.info("Indexing")
             bulk(client, docs, request_timeout=60)
             logger.info(f'{docs_indexed} documents indexed')
