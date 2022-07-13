@@ -109,7 +109,7 @@ def get_opensearch():
 def index_file(file, index_name, reduced=False):
     logger.info("Creating Model")
     # IMPLEMENT ME: instantiate the sentence transformer model!
-    model = SentenceTransformer('all-MiniLM-L6-v2")
+    model = SentenceTransformer("all-MiniLM-L6-v2")
     logger.info("Ready to index")
 
     docs_indexed = 0
@@ -154,7 +154,7 @@ def index_file(file, index_name, reduced=False):
     if len(docs) > 0:
         names_embed = model.encode(names)
         for i in range(len(docs)):
-            docs[i]["_source"]["name_embed"]= names_embed[i])
+            docs[i]["_source"]["name_embed"]= names_embed[i]
         bulk(client, docs, request_timeout=60)
         logger.info(f'{docs_indexed} documents indexed')
     return docs_indexed

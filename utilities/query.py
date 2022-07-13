@@ -266,11 +266,13 @@ if __name__ == "__main__":
     general.add_argument('--vector', default = False,
                           help='use vector search')
     args = parser.parse_args()
-
+    
     if len(vars(args)) == 0:
+        print(1)
         parser.print_usage()
         exit()
-
+    if args.vector:
+        vector = True
     host = args.host
     port = args.port
     if args.user:
@@ -297,7 +299,7 @@ if __name__ == "__main__":
         query = line.rstrip()
         if query == "Exit":
             break
-        search(client=opensearch, user_query=query, index=index_name, vector = args.vector)
+        search(client=opensearch, user_query=query, index=index_name, vector = True)
 
         print(query_prompt)
 
